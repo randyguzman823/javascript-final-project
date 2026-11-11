@@ -4,6 +4,7 @@ const searchInput = document.querySelector('#searchInput');
 const moviesGrid = document.querySelector('#moviesGrid');
 const resultsInfo = document.querySelector('#resultsInfo');
 const sortSelect = document.querySelector('#sortSelect');
+const loadingSpinner = document.querySelector('#loadingSpinner');
 
 let currentMovies = [];
 
@@ -31,45 +32,59 @@ function showSkeletons() {
 
 async function fetchMovies(searchTerm) {
     showSkeletons();
+    loadingSpinner.classList.remove('hidden');
 
-    const res = await fetch(`https://www.omdbapi.com/?apikey=${API_KEY}&s=${searchTerm}`);
-    const data = await res.json();
+    try {
+        const res = await fetch(`https://www.omdbapi.com/?apikey=${API_KEY}&s=${searchTerm}`);
+        const data = await res.json();
 
-    if (data.Response === 'True') {
-        currentMovies = data.Search;
-        resultsInfo.textContent = `Showing: ${searchTerm}`;
-        sortSelect.value = 'default';
-        displayMovies(currentMovies);
-    }   else {
-        resultsInfo.textContent = `Showing: ${searchTerm}`;
-        moviesGrid.innerHTML = '<p>No movies found.</p>';
-        currentMovies = [];
+        if (data.Response === 'True') {
+            currentMovies = data.Search;
+            resultsInfo.textContent = `Showing: ${searchTerm}`;
+            sortSelect.value = 'default';
+            displayMovies(currentMovies);
+        }   else {
+            resultsInfo.textContent = `Showing: ${searchTerm}`;
+            moviesGrid.innerHTML = '<p>No movies found.</p>';
+            currentMovies = [];
+        }
+
+    } catch(error) {
+        console.error(error);
+        moviesGrid.innerHTML = '<p>Something went wrong. Please try again.</p>';
+    } finally {
+        setTimeout(() => {
+            loadingSpinner.classList.add('hidden');
+        },1000);
     }
+
+
 }
 
 function  displayMovies(movies) {
-    const movieResults = movies.map((movie) => {
-        const poster = movie.Poster !== 'N/A' ? movie.Poster : '';
 
-        return `
-            <div class="movie-card">
-                ${poster ? `<img class="movie-card__img" src="${poster}" alt="${movie.Title}">` : ''}
-                <h2 class="movie-card__title">${movie.Title}</h2>
-                <p class="movie-card__year">${movie.Year}</p>
-            </div>
-        `;
-    }).join('');
+        const movieResults = movies.map((movie) => {
+            const poster = movie.Poster !== 'N/A' ? movie.Poster : '';
 
-    moviesGrid.innerHTML = movieResults;
+            return `
+                <div class="movie-card">
+                    ${poster ? `<img class="movie-card__img" src="${poster}" alt="${movie.Title}">` : ''}
+                    <h2 class="movie-card__title">${movie.Title}</h2>
+                    <p class="movie-card__year">${movie.Year}</p>
+                </div>
+            `;
+        }).join('');
 
-    moviesGrid.querySelectorAll('.movie-card__img').forEach(img => {
-        img.addEventListener('error', () => {
-            const placeholder = document.createElement('div');
-            placeholder.className = 'movie-card__poster-placeholder';
-            placeholder.innerHTML = 'Movie Poster<br>Not Available';
-            img.replaceWith(placeholder);
+        moviesGrid.innerHTML = movieResults;
+
+        moviesGrid.querySelectorAll('.movie-card__img').forEach(img => {
+            img.addEventListener('error', () => {
+                const placeholder = document.createElement('div');
+                placeholder.className = 'movie-card__poster-placeholder';
+                placeholder.innerHTML = 'Movie Poster<br>Not Available';
+                img.replaceWith(placeholder);
+            });
         });
-    });
 
 }
 
